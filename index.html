@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WebView Test JS Script and Handling URL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fff;
+            color: #222;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .field {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: monospace;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 8px;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: #0066CC;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:active {
+            background: #004499;
+        }
+
+        .status {
+            margin-top: 16px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .status.success {
+            color: #2E7D32;
+        }
+
+        .status.error {
+            color: #C62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WebView Test JS Script and Handling URL</h1>
+
+        <div class="grid">
+            <div class="field">
+                <label for="jsInput">JS Script</label>
+                <input id="jsInput" autocapitalize="off" autocorrect="off">
+                <button onclick="handleTriggerScript()">Trigger</button>
+            </div>
+
+            <div class="field">
+                <label for="urlInput">Handling URL</label>
+                <input id="urlInput" autocapitalize="off" autocorrect="off">
+                <button onclick="handleTriggerUrl()">Trigger</button>
+            </div>
+        </div>
+
+        <p class="status" id="statusMessage" role="status"></p>
+    </div>
+
+    <script>
+        function showStatus(message, type = "") {
+            const statusEl = document.getElementById("statusMessage");
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+        
+        function isIOSApp() {
+            return !!(window.webkit && window.webkit.messageHandlers);
+        }
+
+        function isAndroidApp() {
+            return !!window.Android;
+        }
+
+        function handleTriggerScript() {
+            const name = document.getElementById("jsInput").value.trim().replace(/\(\)$/, "");
+            if (!name) return;
+
+            if (isIOSApp() && window.webkit.messageHandlers[name]) {
+                window.webkit.messageHandlers[name].postMessage({});
+                showStatus(`iOS handler "${name}" triggered`, "success");
+            } else if (isAndroidApp() && typeof window.Android[name] === 'function') {
+                window.Android[name]();
+                showStatus(`Android handler "${name}" triggered`, "success");
+            } else {
+                showStatus(`Native handler "${name}" not found`, "error");
+            }
+        }
+
+        function handleTriggerUrl() {
+            const path = document.getElementById("urlInput").value.trim();
+            if (!path) return;
+            window.location.href = window.location.href.replace(/\/$/, '') + (path.startsWith('/') ? path : '/' + path);
+        }
+
+        window.addEventListener("load", function() {
+            if (isIOSApp()) showStatus("Connected: iOS");
+            else if (isAndroidApp()) showStatus("Connected: Android");
+            else showStatus("Browser mode (no native bridge)");
+        });
+    </script>
+</body>
+</html>
