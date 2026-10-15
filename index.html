@@ -73,6 +73,35 @@
             background: #004499;
         }
 
+        .body-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .body-row input {
+            min-width: 0;
+        }
+
+        .body-row button {
+            width: auto;
+            margin-top: 0;
+            padding: 0 12px;
+            background: #eee;
+            color: #222;
+        }
+
+        button.secondary {
+            background: #fff;
+            color: #0066CC;
+            border: 1px solid #0066CC;
+        }
+
+        button.secondary:active,
+        .body-row button:active {
+            background: #ddd;
+        }
+
         .status {
             margin-top: 16px;
             font-size: 13px;
@@ -96,6 +125,8 @@
             <div class="field">
                 <label for="jsInput">JS Script</label>
                 <input id="jsInput" autocapitalize="off" autocorrect="off">
+                <div id="bodyRows"></div>
+                <button class="secondary" onclick="handleAddBodyRow()">Add message.body field</button>
                 <button onclick="handleTriggerScript()">Trigger</button>
             </div>
 
@@ -105,6 +136,14 @@
                 <button onclick="handleTriggerUrl()">Trigger</button>
             </div>
         </div>
+
+        <template id="bodyRowTemplate">
+            <div class="body-row">
+                <input class="body-key" placeholder="key" aria-label="message.body key" autocapitalize="off" autocorrect="off">
+                <input class="body-value" placeholder="value" aria-label="message.body value" autocapitalize="off" autocorrect="off">
+                <button aria-label="Remove field" onclick="this.parentElement.remove()">&times;</button>
+            </div>
+        </template>
 
         <p class="status" id="statusMessage" role="status"></p>
     </div>
@@ -124,16 +163,37 @@
             return !!window.Android;
         }
 
+        function handleAddBodyRow() {
+            const row = document.getElementById("bodyRowTemplate").content.cloneNode(true);
+            document.getElementById("bodyRows").appendChild(row);
+            document.querySelector("#bodyRows .body-row:last-child .body-key").focus();
+        }
+
+        // ponytail: values sent as strings; parse on native side if a number/bool is needed
+        function getMessageBody() {
+            const body = {};
+            document.querySelectorAll("#bodyRows .body-row").forEach(row => {
+                const key = row.querySelector(".body-key").value.trim();
+                if (key) body[key] = row.querySelector(".body-value").value;
+            });
+            return body;
+        }
+
         function handleTriggerScript() {
             const name = document.getElementById("jsInput").value.trim().replace(/\(\)$/, "");
             if (!name) return;
+            const body = getMessageBody();
+            const bodyJson = JSON.stringify(body);
 
             if (isIOSApp() && window.webkit.messageHandlers[name]) {
-                window.webkit.messageHandlers[name].postMessage({});
-                showStatus(`iOS handler "${name}" triggered`, "success");
+                // Swift receives this as message.body
+                window.webkit.messageHandlers[name].postMessage(body);
+                showStatus(`iOS handler "${name}" triggered, body: ${bodyJson}`, "success");
             } else if (isAndroidApp() && typeof window.Android[name] === 'function') {
-                window.Android[name]();
-                showStatus(`Android handler "${name}" triggered`, "success");
+                // @JavascriptInterface only takes primitives: no fields -> name(), with fields -> name(String json)
+                if (Object.keys(body).length) window.Android[name](bodyJson);
+                else window.Android[name]();
+                showStatus(`Android handler "${name}" triggered, body: ${bodyJson}`, "success");
             } else {
                 showStatus(`Native handler "${name}" not found`, "error");
             }
@@ -142,7 +202,11 @@
         function handleTriggerUrl() {
             const path = document.getElementById("urlInput").value.trim();
             if (!path) return;
-            window.location.href = window.location.href.replace(/\/$/, '') + (path.startsWith('/') ? path : '/' + path);
+            // 404.html reads this for its Back button
+            try { sessionStorage.setItem("homeUrl", window.location.href); } catch (e) {}
+            // strip trailing "/" or "/index.html" so the path lands next to the page, not inside the file
+            const base = window.location.origin + window.location.pathname.replace(/\/([^/]*\.html)?$/, '');
+            window.location.href = base + (path.startsWith('/') ? path : '/' + path);
         }
 
         window.addEventListener("load", function() {

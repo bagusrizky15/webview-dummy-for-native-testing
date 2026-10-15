@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Redirect Result</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fff;
+            color: #222;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        p {
+            font-size: 14px;
+            color: #2E7D32;
+            word-break: break-all;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 16px;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: #0066CC;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:active {
+            background: #004499;
+        }
+    </style>
+</head>
+<body>
+    <!-- GitHub Pages serves this for any unknown path, i.e. URLs native did not intercept -->
+    <div class="container">
+        <p id="message"></p>
+        <button onclick="handleBack()">Back</button>
+    </div>
+
+    <script>
+        document.getElementById("message").textContent = `Berhasil redirect ke ${window.location.href}`;
+
+        function handleBack() {
+            let home = null;
+            try { home = sessionStorage.getItem("homeUrl"); } catch (e) {}
+            if (home) window.location.replace(home);
+            else history.back();
+        }
+    </script>
+</body>
+</html>
